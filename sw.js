@@ -1,6 +1,6 @@
 /* Budget Planner service worker: keeps the app working offline.
    Change CACHE (for example to v2) whenever you edit the files, so phones pick up the new version. */
-const CACHE = 'budget-planner-v11';
+const CACHE = 'budget-planner-v12';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'styles.css',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png'];
 
