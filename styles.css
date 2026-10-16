@@ -118,6 +118,8 @@ body.locked>*:not(#lock){display:none!important}
 /* banner and welcome */
 .banner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;border-radius:12px;padding:12px 14px;background:var(--accent-soft);font-size:14px}
 .banner p{flex:1 1 220px;min-width:0}
+.nx{flex:1 1 100%;display:flex;flex-direction:column;gap:12px}
+.nx .money{background:var(--surface)}
 .welcome{border:1px solid var(--line);background:var(--surface);border-radius:16px;padding:18px}
 .welcome p.hint{margin:-4px 0 14px}
 

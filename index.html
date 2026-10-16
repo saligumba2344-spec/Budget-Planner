@@ -397,7 +397,7 @@ function niceTop(m){
 var CATS=[['food','Food'],['essential','Essential'],['fare','Fare'],['load','Load & data'],['school','School'],['fun','Fun'],['other','Other']];
 var CATNAME={};CATS.forEach(function(c){CATNAME[c[0]]=c[1]});
 var DEFAULT_NEEDS=['food','essential','fare','load','school'];
-var bucketTouched=false,xmodeTouched=false;
+var bucketTouched=false,xmodeTouched=false,nextOpen=false;
 var LS_KEY='allowance-planner-v1',LOCK_KEY='allowance-planner-lock-v1';
 var cryptoKey=null,lockMeta=null,saveChain=Promise.resolve(),failCount=0,hiddenAt=0;
 var state=null,today=iso(new Date()),syncMode='local',docRef=null,writeTimer=null,writing=false,dirty=false,toastTimer=null,toastFn=null;
@@ -525,7 +525,17 @@ function renderBanner(){
   var c=compute(state,today);
   if(c.phase==='ended'){
     el.hidden=false;
-    el.innerHTML='<p>Your period ran '+fmtShort(state.period.start)+' to '+fmtShort(c.end)+'. You spent '+peso(c.spent)+' of '+peso(c.allowance)+'.</p><button type="button" class="btn primary" id="next-period">Start the next period</button>';
+    var info='<p>Your period ran '+fmtShort(state.period.start)+' to '+fmtShort(c.end)+'. You spent '+peso(c.spent)+' of '+peso(c.allowance)+'.</p>';
+    if(!nextOpen)el.innerHTML=info+'<button type="button" class="btn primary" id="next-period">Start the next period</button>';
+    else{
+      var ruleOn=!!(state.rule&&state.rule.on);
+      el.innerHTML=info+'<form id="next-form" class="nx" novalidate>'+
+        '<div><label for="nx-allow" class="lbl">Budget for the new period</label><div class="money"><span aria-hidden="true">₱</span><input id="nx-allow" type="text" inputmode="decimal" autocomplete="off" value="'+centsToInput(state.allowance)+'"></div></div>'+
+        (ruleOn?'<p class="note" id="nx-save-note" style="margin:0">Kept aside for savings (20%): <strong>'+peso(Math.round(state.allowance*0.2))+'</strong></p>'
+          :'<div><label for="nx-save" class="lbl">Keep aside for savings (optional)</label><div class="money"><span aria-hidden="true">₱</span><input id="nx-save" type="text" inputmode="decimal" autocomplete="off" value="'+(state.setAside?centsToInput(state.setAside):'')+'"></div></div>')+
+        '<p id="nx-err" class="err" role="alert" hidden></p>'+
+        '<div class="lock-actions" style="margin:0"><button type="submit" class="btn primary">Start new period</button><button type="button" class="btn" id="nx-cancel">Cancel</button></div></form>';
+    }
   }else if(c.phase==='upcoming'){
     el.hidden=false;
     el.innerHTML='<p>Your period starts on '+fmtDay(state.period.start)+'. Daily amounts begin then.</p>';
@@ -854,6 +864,12 @@ function onPlan(ev){
 }
 function startNext(){
   if(!state)return;
+  var a=parseCents($('nx-allow').value),sv=$('nx-save')?parseCents($('nx-save').value):0,err=$('nx-err'),ruleOn=!!(state.rule&&state.rule.on),msg='';
+  if(ruleOn&&a)sv=Math.round(a*0.2);
+  if(!a)msg='Enter the budget as a number above zero, like 300.';
+  else if(sv===null)msg='Enter the savings amount as a number, or leave it empty.';
+  else if(sv>=a)msg='The savings amount has to be less than the budget.';
+  if(msg){err.textContent=msg;err.hidden=false;$('nx-allow').focus();return}
   var c=compute(state,today);
   state.past=state.past||[];
   state.past.unshift({s:state.period.start,e:c.end,allow:c.allowance,set:c.setAside,spent:c.spent});
@@ -866,10 +882,12 @@ function startNext(){
     start=addDays(e,1);
   }
   state.period={start:start,kind:state.period.kind,days:state.period.days};
+  state.allowance=a;state.setAside=sv;
   state.expenses=[];
   state.extras=[];
+  nextOpen=false;
   commit();fillPlanForm();
-  toast('New period started');
+  toast('New period started with a budget of '+peso(a));
 }
 function canLock(){return !window.claude&&!!(window.crypto&&window.crypto.subtle)}
 function renderLockBox(){
@@ -1367,7 +1385,8 @@ function onRemove(id){
 document.addEventListener('click',function(ev){
   var t=ev.target.closest?ev.target.closest('button'):null;
   if(!t)return;
-  if(t.id==='next-period')startNext();
+  if(t.id==='next-period'){nextOpen=true;renderBanner();var f=$('nx-allow');if(f){f.focus();f.select()}}
+  else if(t.id==='nx-cancel'){nextOpen=false;renderBanner()}
   else if(t.id==='lk-reset')$('lk-confirm').hidden=false;
   else if(t.id==='lk-cancel')$('lk-confirm').hidden=true;
   else if(t.id==='lk-erase')eraseAll();
@@ -1395,6 +1414,14 @@ document.addEventListener('click',function(ev){
   else if(t.id==='toast-act'){var f=toastFn;$('toast').hidden=true;toastFn=null;if(f)f()}
 });
 $('add-form').addEventListener('submit',onAdd);
+document.addEventListener('submit',function(ev){if(ev.target.id==='next-form'){ev.preventDefault();startNext()}});
+document.addEventListener('input',function(ev){
+  if(ev.target.id==='nx-allow'){
+    var a=parseCents(ev.target.value),n=$('nx-save-note');
+    if(n)n.innerHTML='Kept aside for savings (20%): <strong>'+peso(a?Math.round(a*0.2):0)+'</strong>';
+    var e=$('nx-err');if(e)e.hidden=true;
+  }
+});
 $('plan-form').addEventListener('submit',onPlan);
 $('extra-form').addEventListener('submit',onExtra);
 $('saved-form').addEventListener('submit',onSaved);
