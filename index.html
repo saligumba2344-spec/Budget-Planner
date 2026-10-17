@@ -26,6 +26,12 @@ var c=t==='dark'?'#0A131A':'#EBF0F4',m=document.querySelectorAll('meta[name="the
 
 <div class="wrap">
   <header class="top">
+    <button type="button" class="av-btn" id="av-btn" aria-haspopup="true" aria-expanded="false" aria-label="Choose your avatar" title="Choose your avatar"><img id="av-img" src="icons/avatar-girl.svg" alt="" width="44" height="44"></button>
+    <div class="av-menu" id="av-menu" role="radiogroup" aria-label="Avatar" hidden>
+      <button type="button" class="av-opt" role="radio" data-av="girl" aria-checked="true"><img src="icons/avatar-girl.svg" alt="" width="56" height="56"><span>Girl</span></button>
+      <button type="button" class="av-opt" role="radio" data-av="boy" aria-checked="false"><img src="icons/avatar-boy.svg" alt="" width="56" height="56"><span>Boy</span></button>
+    </div>
+    <script>try{var _a=localStorage.getItem('budget-planner-avatar');if(_a==='boy'||_a==='girl'){document.getElementById('av-img').src='icons/avatar-'+_a+'.svg';var _o=document.querySelectorAll('.av-opt');for(var _i=0;_i<_o.length;_i++)_o[_i].setAttribute('aria-checked',_o[_i].getAttribute('data-av')===_a?'true':'false')}}catch(e){}</script>
     <h1>Budget Planner</h1>
     <p class="range" id="range"></p>
     <button type="button" class="theme-btn" id="theme-btn" aria-label="Switch to dark mode" title="Switch to dark mode">
@@ -50,6 +56,7 @@ var c=t==='dark'?'#0A131A':'#EBF0F4',m=document.querySelectorAll('meta[name="the
       <section id="welcome" class="welcome" aria-labelledby="welcome-h" hidden>
         <h2 id="welcome-h">Set up your budget</h2>
         <p class="hint">Enter how much you get and how often. The planner works out what is safe to spend each day.</p>
+        <p id="welcome-kept" class="hint" hidden style="margin:-6px 0 14px">Your savings, goals, shopping list and debts are kept. They come back when you set up a new plan.</p>
         <div id="welcome-slot"></div>
       </section>
 
@@ -246,6 +253,16 @@ var c=t==='dark'?'#0A131A':'#EBF0F4',m=document.querySelectorAll('meta[name="the
             <button type="button" class="btn" id="lock-off">Turn off app lock</button>
           </div>
         </div>
+        <div id="rp-box" class="lock-box">
+          <h3>Remove plan</h3>
+          <p class="note" style="margin:0">Start over with a new budget. This clears your budget, expenses, extra money and finished-period history. Your savings, goals, shopping list and debts are kept unless you choose to erase them too.</p>
+          <div class="lock-actions"><button type="button" class="btn" id="rp-ask">Remove plan</button></div>
+          <div id="rp-confirm" hidden style="margin-top:12px">
+            <p class="err" style="margin:0 0 10px">This removes your current plan from this device. You can undo it right after.</p>
+            <label class="check"><input type="checkbox" id="rp-all"><span>Also erase my savings, goals, shopping list and debts</span></label>
+            <div class="lock-actions"><button type="button" class="btn" id="rp-yes">Yes, remove plan</button><button type="button" class="btn" id="rp-no">Cancel</button></div>
+          </div>
+        </div>
       </details>
     </div>
 
@@ -409,7 +426,7 @@ var DEFAULT_NEEDS=['food','essential','fare','load','school'];
 var bucketTouched=false,xmodeTouched=false,nextOpen=false;
 var LS_KEY='allowance-planner-v1',LOCK_KEY='allowance-planner-lock-v1';
 var cryptoKey=null,lockMeta=null,saveChain=Promise.resolve(),failCount=0,hiddenAt=0;
-var state=null,today=iso(new Date()),syncMode='local',docRef=null,writeTimer=null,writing=false,dirty=false,toastTimer=null,toastFn=null;
+var state=null,kept=null,today=iso(new Date()),syncMode='local',docRef=null,writeTimer=null,writing=false,dirty=false,toastTimer=null,toastFn=null;
 
 function $(id){return document.getElementById(id)}
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -440,7 +457,7 @@ function migrate(s){
   if(s&&s.rule&&Array.isArray(s.rule.needs)&&!s.ess){s.ess=1;if(s.rule.needs.indexOf('essential')<0)s.rule.needs.push('essential')}
   return s;
 }
-function loadLocal(){try{var s=JSON.parse(localStorage.getItem(LS_KEY)||'null');return valid(s)?migrate(s):null}catch(e){return null}}
+function loadLocal(){try{var s=JSON.parse(localStorage.getItem(LS_KEY)||'null');if(valid(s))return migrate(s);if(s&&s.kept&&typeof s.kept==='object')kept=s.kept;return null}catch(e){return null}}
 function b64e(buf){var s='',b=new Uint8Array(buf);for(var i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);return btoa(s)}
 function b64d(s){var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u}
 function deriveKey(pin,salt,iter){
@@ -462,13 +479,14 @@ function decryptBlob(meta,pin){
   });
 }
 function loadLockMeta(){try{var m=JSON.parse(localStorage.getItem(LOCK_KEY)||'null');return m&&m.ct&&m.salt&&m.iv?m:null}catch(e){return null}}
+function snapObj(){return state||(kept?{kept:kept,updatedAt:Date.now()}:null)}
 function saveLocal(){
   if(cryptoKey){
-    var snap=JSON.stringify(state);
+    var snap=JSON.stringify(snapObj());
     saveChain=saveChain.then(function(){return encryptSnapshot(snap)}).catch(function(){});
     return;
   }
-  try{localStorage.setItem(LS_KEY,JSON.stringify(state))}catch(e){}
+  try{var o=snapObj();if(o)localStorage.setItem(LS_KEY,JSON.stringify(o));else localStorage.removeItem(LS_KEY)}catch(e){}
 }
 function adopt(remote){state=migrate(JSON.parse(JSON.stringify(remote)));saveLocal();fillPlanForm()}
 function commit(){state.updatedAt=Date.now();saveLocal();queueRemote();render()}
@@ -516,6 +534,7 @@ function placePlan(){
   var form=$('plan-form'),slot=state?$('plan-slot'):$('welcome-slot');
   if(form.parentNode!==slot)slot.appendChild(form);
   $('welcome').hidden=!!state;
+  $('welcome-kept').hidden=!!state||!kept;
   $('plan-details').hidden=!state;
   $('plan-submit').textContent=state?'Save plan':'Start planning';
 }
@@ -866,7 +885,10 @@ function onPlan(ev){
   el.hidden=true;
   var period={start:start,kind:kind,days:kind==='custom'?days:7},first=!state;
   var ruleObj={on:rule,needs:needs};
-  if(first)state={v:1,updatedAt:0,period:period,allowance:a,setAside:s,savedTotal:0,ess:1,saved:[],goals:[],shop:[],debts:[],past:[],rule:ruleObj,expenses:[]};
+  if(first){
+    state={v:1,updatedAt:0,period:period,allowance:a,setAside:s,savedTotal:0,ess:1,saved:[],goals:[],shop:[],debts:[],past:[],rule:ruleObj,expenses:[]};
+    if(kept){state.savedTotal=kept.savedTotal||0;state.saved=kept.saved||[];if(kept.places)state.places=kept.places;state.goals=kept.goals||[];state.shop=kept.shop||[];state.debts=kept.debts||[];kept=null}
+  }
   else{state.allowance=a;state.setAside=s;state.period=period;state.rule=ruleObj}
   commit();fillPlanForm();
   toast(first?'Your plan is ready':'Plan saved');
@@ -897,6 +919,19 @@ function startNext(){
   nextOpen=false;
   commit();fillPlanForm();
   toast('New period started with a budget of '+peso(a));
+}
+function removePlan(eraseAll){
+  if(!state)return;
+  var snap=JSON.stringify(state);
+  if(eraseAll)kept=null;
+  else kept={savedTotal:state.savedTotal||0,saved:state.saved||[],places:state.places,goals:state.goals||[],shop:state.shop||[],
+    debts:(state.debts||[]).map(function(d){d.log=(d.log||[]).map(function(e){return {id:e.id,d:e.d,c:e.c}});return d})};
+  state=null;nextOpen=false;
+  saveLocal();
+  if(docRef){dirty=false;clearTimeout(writeTimer);try{docRef.set({kept:kept,updatedAt:Date.now()})}catch(e){}}
+  $('rp-confirm').hidden=true;$('rp-all').checked=false;
+  fillPlanForm();render();goTab('today');
+  toast('Plan removed','Undo',function(){state=JSON.parse(snap);kept=null;commit();fillPlanForm();toast('Plan restored')});
 }
 function canLock(){return !window.claude&&!!(window.crypto&&window.crypto.subtle)}
 function renderLockBox(){
@@ -948,7 +983,8 @@ function onUnlock(ev){
   btn.disabled=true;
   setTimeout(function(){
     decryptBlob(lockMeta,pin).then(function(r){
-      cryptoKey=r.key;state=migrate(r.state);failCount=0;
+      cryptoKey=r.key;failCount=0;
+      if(valid(r.state)){state=migrate(r.state)}else{state=null;kept=(r.state&&r.state.kept)||null}
       try{localStorage.removeItem(LS_KEY)}catch(e){}
       $('lk-pin').value='';msg.hidden=true;$('lock').hidden=true;
       document.body.classList.remove('locked');
@@ -1394,7 +1430,10 @@ function onRemove(id){
 document.addEventListener('click',function(ev){
   var t=ev.target.closest?ev.target.closest('button'):null;
   if(!t)return;
-  if(t.id==='next-period'){nextOpen=true;renderBanner();var f=$('nx-allow');if(f){f.focus();f.select()}}
+  if(t.id==='rp-ask')$('rp-confirm').hidden=false;
+  else if(t.id==='rp-no')$('rp-confirm').hidden=true;
+  else if(t.id==='rp-yes')removePlan($('rp-all').checked);
+  else if(t.id==='next-period'){nextOpen=true;renderBanner();var f=$('nx-allow');if(f){f.focus();f.select()}}
   else if(t.id==='nx-cancel'){nextOpen=false;renderBanner()}
   else if(t.id==='lk-reset')$('lk-confirm').hidden=false;
   else if(t.id==='lk-cancel')$('lk-confirm').hidden=true;
@@ -1486,6 +1525,26 @@ if(lockMeta&&canLock()){
   render();
   connect();
 }
+})();
+</script>
+<script>
+/* Avatar picker: girl or boy, remembered on this device. */
+(function(){
+  var KEY='budget-planner-avatar',btn=document.getElementById('av-btn'),menu=document.getElementById('av-menu'),img=document.getElementById('av-img'),opts=menu.querySelectorAll('.av-opt');
+  function get(){try{var a=localStorage.getItem(KEY);return a==='boy'?'boy':'girl'}catch(e){return 'girl'}}
+  function paint(){var a=get();img.src='icons/avatar-'+a+'.svg';for(var i=0;i<opts.length;i++)opts[i].setAttribute('aria-checked',opts[i].getAttribute('data-av')===a?'true':'false')}
+  function close(focus){menu.hidden=true;btn.setAttribute('aria-expanded','false');if(focus)btn.focus()}
+  btn.addEventListener('click',function(){
+    var open=menu.hidden;menu.hidden=!open;btn.setAttribute('aria-expanded',open?'true':'false');
+    if(open){var cur=menu.querySelector('[aria-checked="true"]');if(cur)cur.focus()}
+  });
+  for(var i=0;i<opts.length;i++)opts[i].addEventListener('click',function(){
+    try{localStorage.setItem(KEY,this.getAttribute('data-av'))}catch(e){}
+    paint();close(true);
+  });
+  document.addEventListener('click',function(ev){if(!menu.hidden&&!menu.contains(ev.target)&&!btn.contains(ev.target))close(false)});
+  document.addEventListener('keydown',function(ev){if(ev.key==='Escape'&&!menu.hidden)close(true)});
+  paint();
 })();
 </script>
 <script>
