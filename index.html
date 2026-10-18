@@ -55,7 +55,7 @@ var c=t==='dark'?'#0A131A':'#EBF0F4',m=document.querySelectorAll('meta[name="the
     <div class="col">
       <section id="welcome" class="welcome" aria-labelledby="welcome-h" hidden>
         <h2 id="welcome-h">Set up your budget</h2>
-        <p class="hint">Enter how much you get and how often. The planner works out what is safe to spend each day.</p>
+        <p class="hint">Pick a mode and tell the planner about your money. It works out what is safe to spend each day.</p>
         <p id="welcome-kept" class="hint" hidden style="margin:-6px 0 14px">Your savings, goals, shopping list and debts are kept. They come back when you set up a new plan.</p>
         <div id="welcome-slot"></div>
       </section>
@@ -68,11 +68,9 @@ var c=t==='dark'?'#0A131A':'#EBF0F4',m=document.querySelectorAll('meta[name="the
         <h2 id="add-h">Log what you spent</h2>
         <form id="add-form" novalidate>
           <fieldset id="add-fields" class="plain">
-            <div>
-              <label for="amt" class="lbl">Amount</label>
-              <div class="money"><span aria-hidden="true">₱</span><input id="amt" type="text" inputmode="decimal" autocomplete="off" placeholder="0" aria-describedby="amt-err preview"></div>
-            </div>
-            <div class="quick" role="group" aria-label="Quick amounts">
+            <div id="exp-rows"></div>
+            <button type="button" class="btn" id="add-row">+ Add another item</button>
+            <div class="quick" role="group" aria-label="Quick amounts (fills the item you are on)">
               <button type="button" class="q" data-amt="20">₱20</button>
               <button type="button" class="q" data-amt="50">₱50</button>
               <button type="button" class="q" data-amt="100">₱100</button>
@@ -80,22 +78,8 @@ var c=t==='dark'?'#0A131A':'#EBF0F4',m=document.querySelectorAll('meta[name="the
             </div>
             <p id="amt-err" class="err" role="alert" hidden></p>
             <div id="preview" class="preview" aria-live="polite" hidden></div>
-            <fieldset class="cats">
-              <legend class="lbl">Category</legend>
-              <div class="chips" id="chips"></div>
-            </fieldset>
-            <fieldset class="cats" id="bucket-wrap" hidden>
-              <legend class="lbl">Counts as</legend>
-              <div class="chips" id="bucket-chips">
-                <input class="sr" type="radio" name="bkt" id="b-needs" value="needs" checked><label for="b-needs">Need</label>
-                <input class="sr" type="radio" name="bkt" id="b-wants" value="wants"><label for="b-wants">Want</label>
-              </div>
-            </fieldset>
-            <div class="two">
-              <div><label for="note" class="lbl">Note (optional)</label><input id="note" type="text" maxlength="60" autocomplete="off" placeholder="e.g. lunch at canteen"></div>
-              <div><label for="date" class="lbl">Date</label><input id="date" type="date"></div>
-            </div>
-            <button type="submit" class="btn primary">Add expense</button>
+            <div><label for="date" class="lbl">Date (for all items)</label><input id="date" type="date"></div>
+            <button type="submit" class="btn primary" id="add-submit">Add expense</button>
           </fieldset>
           <p id="add-note" class="hint" hidden></p>
         </form>
@@ -293,11 +277,19 @@ var c=t==='dark'?'#0A131A':'#EBF0F4',m=document.querySelectorAll('meta[name="the
 </div>
 
 <form id="plan-form" novalidate>
-  <div><label for="p-allow" class="lbl">My budget (₱)</label><input id="p-allow" type="text" inputmode="decimal" autocomplete="off" placeholder="e.g. 1500"></div>
-  <div class="check"><input id="p-rule" type="checkbox" checked><label for="p-rule"><strong>Use the 50/30/20 rule</strong><span class="note" style="display:block;margin:2px 0 0">50% of your budget for needs, 30% for wants, 20% for savings. Savings is kept aside for you automatically.</span></label></div>
-  <div><label for="p-save" class="lbl">Keep aside for savings (₱, optional)</label><input id="p-save" type="text" inputmode="decimal" autocomplete="off" placeholder="e.g. 300"><p class="note" id="p-save-note">This money is taken out first, so it never counts as spendable.</p></div>
+  <fieldset class="cats" id="p-mode-wrap">
+    <legend class="lbl">How do you want to plan?</legend>
+    <div class="chips" id="p-mode">
+      <input class="sr" type="radio" name="pmode" id="pm-basic" value="basic" checked><label for="pm-basic">Basic</label>
+      <input class="sr" type="radio" name="pmode" id="pm-full" value="full"><label for="pm-full">Full</label>
+    </div>
+    <p class="note" id="p-mode-note" style="margin-top:8px"></p>
+  </fieldset>
+  <div><label for="p-allow" class="lbl" id="p-allow-lbl">My budget (₱)</label><input id="p-allow" type="text" inputmode="decimal" autocomplete="off" placeholder="e.g. 1500"></div>
+  <div class="check" id="p-rule-wrap"><input id="p-rule" type="checkbox" checked><label for="p-rule"><strong>Use the 50/30/20 rule</strong><span class="note" style="display:block;margin:2px 0 0">50% of your budget for needs, 30% for wants, 20% for savings. Savings is kept aside for you automatically.</span></label></div>
+  <div id="p-save-wrap"><label for="p-save" class="lbl">Keep aside for savings (₱, optional)</label><input id="p-save" type="text" inputmode="decimal" autocomplete="off" placeholder="e.g. 300"><p class="note" id="p-save-note">This money is taken out first, so it never counts as spendable.</p></div>
   <fieldset id="p-needs" class="needs"><legend class="lbl">Start these as needs</legend><div class="checks" id="p-needs-list"></div><p class="note">Everything else starts as a want. You can switch any single expense when you log it, or later from the list.</p></fieldset>
-  <div><label for="p-kind" class="lbl">I get it</label>
+  <div id="p-kind-wrap"><label for="p-kind" class="lbl">I get it</label>
     <select id="p-kind">
       <option value="week">Every week</option>
       <option value="twoweeks">Every 2 weeks</option>
@@ -305,8 +297,9 @@ var c=t==='dark'?'#0A131A':'#EBF0F4',m=document.querySelectorAll('meta[name="the
       <option value="custom">Every set number of days</option>
     </select>
   </div>
-  <div id="p-days-wrap" hidden><label for="p-days" class="lbl">Number of days (1 to 90)</label><input id="p-days" type="number" min="1" max="90" step="1" inputmode="numeric" value="7"></div>
-  <div><label for="p-start" class="lbl">This period starts</label><input id="p-start" type="date"></div>
+  <div id="p-days-wrap" hidden><label for="p-days" class="lbl" id="p-days-lbl">Number of days (1 to 90)</label><input id="p-days" type="number" min="1" max="90" step="1" inputmode="numeric" value="7"></div>
+  <div id="p-start-wrap"><label for="p-start" class="lbl">This period starts</label><input id="p-start" type="date"></div>
+  <div id="p-basic-preview" class="preview info" aria-live="polite" hidden></div>
   <p id="plan-err" class="err" role="alert" hidden></p>
   <button type="submit" class="btn primary" id="plan-submit">Start planning</button>
 </form>
@@ -366,6 +359,7 @@ function effective(st){
   extrasIn(st).forEach(function(x){
     A+=x.c;
     if(x.mode==='save')S+=x.c;
+    else if(x.mode==='split'&&st.mode==='basic'){S+=Math.round(x.c*0.2)}
     else if(x.mode==='split'&&ruleOn){S+=Math.round(x.c*0.2);N+=Math.round(x.c*0.5)}
   });
   return {allowance:A,setAside:S,needsExtra:N};
@@ -378,7 +372,7 @@ function compute(st,today,extra){
   var p=st.period,end=periodEnd(p),totalDays=diffDays(p.start,end)+1;
   var ef=effective(st);
   var pool=Math.max(0,ef.allowance-ef.setAside);
-  var list=(extra?st.expenses.concat([extra]):st.expenses).filter(function(e){return e.d>=p.start&&e.d<=end});
+  var list=(extra?st.expenses.concat(Array.isArray(extra)?extra:[extra]):st.expenses).filter(function(e){return e.d>=p.start&&e.d<=end});
   var phase=today<p.start?'upcoming':(today>end?'ended':'active');
   var eff=phase==='upcoming'?p.start:(phase==='ended'?end:today);
   var spent=0,before=0,tod=0,perDay=[],cats={},bsum={needs:0,wants:0},i;
@@ -402,7 +396,7 @@ function compute(st,today,extra){
   else if(safe<0)status='overday';
   else if(safe<=share*0.25)status='tight';
   else status='good';
-  return {end:end,totalDays:totalDays,pool:pool,spent:spent,remaining:remaining,eff:eff,phase:phase,
+  return {open:!!p.open,end:end,totalDays:totalDays,pool:pool,spent:spent,remaining:remaining,eff:eff,phase:phase,
     daysLeft:daysLeft,share:share,safe:safe,tod:tod,tomorrow:tomorrow,status:status,perDay:perDay,cats:cats,bsum:bsum,allowance:ef.allowance,setAside:ef.setAside,needsExtra:ef.needsExtra};
 }
 function buckets(st,c){
@@ -423,7 +417,7 @@ function niceTop(m){
 var CATS=[['food','Food'],['essential','Essential'],['fare','Fare'],['load','Load & data'],['school','School'],['fun','Fun'],['other','Other']];
 var CATNAME={};CATS.forEach(function(c){CATNAME[c[0]]=c[1]});
 var DEFAULT_NEEDS=['food','essential','fare','load','school'];
-var bucketTouched=false,xmodeTouched=false,nextOpen=false;
+var lastAmt=null,xmodeTouched=false,nextOpen=false;
 var LS_KEY='allowance-planner-v1',LOCK_KEY='allowance-planner-lock-v1';
 var cryptoKey=null,lockMeta=null,saveChain=Promise.resolve(),failCount=0,hiddenAt=0;
 var state=null,kept=null,today=iso(new Date()),syncMode='local',docRef=null,writeTimer=null,writing=false,dirty=false,toastTimer=null,toastFn=null;
@@ -541,7 +535,7 @@ function placePlan(){
 function renderTop(){
   if(!state){$('range').textContent='Example week';return}
   var c=compute(state,today);
-  $('range').textContent=fmtShort(state.period.start)+' – '+fmtShort(c.end)+' · '+c.totalDays+' days';
+  $('range').textContent=c.open?'From '+fmtShort(state.period.start)+' · no end date':fmtShort(state.period.start)+' – '+fmtShort(c.end)+' · '+c.totalDays+' days';
 }
 function renderBanner(){
   var el=$('banner');
@@ -558,8 +552,9 @@ function renderBanner(){
     else{
       var ruleOn=!!(state.rule&&state.rule.on);
       el.innerHTML=info+'<form id="next-form" class="nx" novalidate>'+
-        '<div><label for="nx-allow" class="lbl">Budget for the new period</label><div class="money"><span aria-hidden="true">₱</span><input id="nx-allow" type="text" inputmode="decimal" autocomplete="off" value="'+centsToInput(state.allowance)+'"></div></div>'+
-        (ruleOn?'<p class="note" id="nx-save-note" style="margin:0">Kept aside for savings (20%): <strong>'+peso(Math.round(state.allowance*0.2))+'</strong></p>'
+        '<div><label for="nx-allow" class="lbl">'+(isBasic(state)?'How much money do you have today?':'Budget for the new period')+'</label><div class="money"><span aria-hidden="true">₱</span><input id="nx-allow" type="text" inputmode="decimal" autocomplete="off" value="'+centsToInput(state.allowance)+'"></div></div>'+
+        (isBasic(state)?'<div><label for="nx-days" class="lbl">How many days should it last? (optional, 1 to 90)</label><input id="nx-days" type="number" min="1" max="90" step="1" inputmode="numeric" value="'+(state.period.open?'':(diffDays(state.period.start,c.end)+1))+'"></div><p class="note" id="nx-save-note" style="margin:0">Kept aside for savings (20%): <strong>'+peso(Math.round(state.allowance*0.2))+'</strong></p>'
+          :ruleOn?'<p class="note" id="nx-save-note" style="margin:0">Kept aside for savings (20%): <strong>'+peso(Math.round(state.allowance*0.2))+'</strong></p>'
           :'<div><label for="nx-save" class="lbl">Keep aside for savings (optional)</label><div class="money"><span aria-hidden="true">₱</span><input id="nx-save" type="text" inputmode="decimal" autocomplete="off" value="'+(state.setAside?centsToInput(state.setAside):'')+'"></div></div>')+
         '<p id="nx-err" class="err" role="alert" hidden></p>'+
         '<div class="lock-actions" style="margin:0"><button type="submit" class="btn primary">Start new period</button><button type="button" class="btn" id="nx-cancel">Cancel</button></div></form>';
@@ -577,6 +572,17 @@ function renderBanner(){
 function renderHero(){
   var demo=!state,st=view(),c=compute(st,today),cls=c.status,share=c.share;
   var eyebrow,bigN,sub,label,pct=0,mini;
+  if(c.open&&c.phase==='active'){
+    cls=c.remaining<0?'over':'good';
+    pct=c.pool>0?Math.min(100,Math.max(0,c.spent/c.pool*100)):(c.spent>0?100:0);
+    $('hero').innerHTML=
+      '<div class="hero-top"><p class="eyebrow">Money left to spend</p><span class="pill p-'+cls+'"><i></i>'+(cls==='over'?'Over budget':'On track')+'</span></div>'+
+      '<p class="big" aria-label="'+Math.floor(Math.max(0,c.remaining)/100)+' pesos"><span class="cur" aria-hidden="true">₱</span><span aria-hidden="true">'+num(Math.floor(Math.max(0,c.remaining)/100))+'</span></p>'+
+      '<div class="meter '+cls+'" role="img" aria-label="'+Math.round(pct)+' percent of your spendable money used"><span style="width:'+pct.toFixed(1)+'%"></span></div>'+
+      '<p class="sub">'+(c.remaining<0?'You are '+peso(-c.remaining)+' past the money you can spend.'+(c.setAside>0?' It is coming out of your savings.':''):'No number of days is set, so there is no daily amount. Add days in Plan settings to get one.')+'</p>'+
+      '<dl class="mini"><div><dt>Spent</dt><dd>'+peso(c.spent)+'</dd></div><div><dt>Spendable</dt><dd>'+peso(c.pool)+'</dd></div><div><dt>Kept aside</dt><dd>'+peso(c.setAside)+'</dd></div></dl>';
+    return;
+  }
   if(c.phase==='active'){
     eyebrow='Safe to spend today · '+fmtDay(c.eff);
     bigN=Math.floor(Math.max(0,c.safe)/100);
@@ -627,21 +633,56 @@ function renderForm(){
   d.max=c.phase==='upcoming'?st.period.start:(today<c.end?today:c.end);
   if(!d.value||d.value<d.min||d.value>d.max)d.value=c.eff;
   var ruleOn=!!(state&&state.rule&&state.rule.on);
-  $('bucket-wrap').hidden=!ruleOn;
-  if(ruleOn&&!bucketTouched)setBucketDefault();
+  $('exp-rows').classList.toggle('rule-on',ruleOn);
+  if(ruleOn)rowEls().forEach(function(r){if(!r.dataset.t)setRowBucket(r)});
+}
+function rowEls(){return Array.prototype.slice.call($('exp-rows').querySelectorAll('.exp-row'))}
+function numberRows(){
+  var r=rowEls();
+  r.forEach(function(el,i){el.querySelector('.exp-n').textContent='Item '+(i+1);el.querySelector('[data-rowdel]').hidden=r.length<2});
+  $('add-row').hidden=r.length>=15;
+}
+function setRowBucket(el){
+  var cat=el.querySelector('.r-cat').value,on=!!(state&&state.rule&&state.rule.needs&&state.rule.needs.indexOf(cat)>=0);
+  el.querySelector('.r-bkt').value=on?'needs':'wants';
+}
+function rowHtml(){
+  return '<div class="exp-row"><div class="exp-top"><span class="exp-n"></span><button type="button" class="x" data-rowdel aria-label="Remove this item" title="Remove">×</button></div>'+
+    '<div class="money"><span aria-hidden="true">₱</span><input class="r-amt" type="text" inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Amount" aria-describedby="amt-err preview"></div>'+
+    '<div class="exp-opts"><select class="r-cat" aria-label="Category">'+CATS.map(function(c){return '<option value="'+c[0]+'">'+esc(c[1])+'</option>'}).join('')+'</select>'+
+    '<select class="r-bkt" aria-label="Counts as"><option value="needs">Need</option><option value="wants">Want</option></select></div>'+
+    '<input class="r-note" type="text" maxlength="60" autocomplete="off" placeholder="Note (optional), e.g. lunch at canteen" aria-label="Note"></div>';
+}
+function addRow(focus){
+  if(rowEls().length>=15)return;
+  var d=document.createElement('div');d.innerHTML=rowHtml();
+  var el=d.firstChild;$('exp-rows').appendChild(el);
+  setRowBucket(el);numberRows();
+  if(focus)el.querySelector('.r-amt').focus();
+  renderPreview();
+}
+function resetRows(){$('exp-rows').innerHTML='';addRow(false)}
+function readItems(d){
+  var items=[],total=0;
+  rowEls().forEach(function(r){
+    var c=parseCents(r.querySelector('.r-amt').value);
+    if(c){items.push({d:d,c:c,cat:r.querySelector('.r-cat').value,b:r.querySelector('.r-bkt').value});total+=c}
+  });
+  return {items:items,total:total};
 }
 function renderPreview(){
-  var el=$('preview');
+  var el=$('preview'),btn=$('add-submit');
+  var filled=rowEls().filter(function(r){return parseCents(r.querySelector('.r-amt').value)}).length;
+  btn.textContent=filled>1?'Add all '+filled+' expenses':'Add expense';
   if(!state){el.hidden=true;return}
-  var c=parseCents($('amt').value);
-  if(!c){el.hidden=true;el.textContent='';return}
   var a=compute(state,today);
   if(a.phase==='upcoming'){el.hidden=true;return}
-  var cat=(document.querySelector('input[name="cat"]:checked')||{}).value||'other';
-  var bsel=(document.querySelector('input[name="bkt"]:checked')||{}).value||'wants';
-  var d=$('date').value||a.eff,b=compute(state,today,{d:d,c:c,cat:cat,b:bsel}),msg,cls;
+  var d=$('date').value||a.eff,r=readItems(d),items=r.items,c=r.total;
+  if(!items.length){el.hidden=true;el.textContent='';return}
+  var b=compute(state,today,items),msg,cls;
   if(d===a.eff&&a.phase==='active'){
     if(b.remaining<0){msg='That is '+peso(-b.remaining)+' more than you have left for this period.';cls='bad'}
+    else if(a.open){msg='You would still have '+peso(b.remaining)+' left to spend.';cls='good'}
     else if(b.safe<0){
       msg=peso(-b.safe)+' over today’s share.'+(a.tomorrow!==null&&b.tomorrow!==null?' Tomorrow’s share would drop from '+pesoFloor(a.tomorrow)+' to '+pesoFloor(b.tomorrow)+'.':'');
       cls='warn';
@@ -653,10 +694,13 @@ function renderPreview(){
     msg='Adds '+peso(c)+' to '+fmtShort(d)+'. '+(b.remaining<0?'You would be '+peso(-b.remaining)+' over for the period.':peso(b.remaining)+' would be left for the period.');
     cls=b.remaining<0?'bad':'info';
   }
+  if(items.length>1)msg='These '+items.length+' items total '+peso(c)+'. '+msg;
   if(state.rule&&state.rule.on){
-    var bk=buckets(state,b),key=bsel==='needs'?'needs':'wants',B=bk[key],bn=key==='needs'?'Needs':'Wants';
-    if(B.spent>B.budget){msg+=' '+bn+' would be '+peso(B.spent-B.budget)+' over its share.';if(cls==='good'||cls==='info')cls='warn'}
-    else msg+=' '+bn+': '+peso(B.budget-B.spent)+' left of '+peso(B.budget)+'.';
+    var bk=buckets(state,b),over=[];
+    ['needs','wants'].forEach(function(k){var B=bk[k];if(B.spent>B.budget)over.push((k==='needs'?'Needs':'Wants')+' would be '+peso(B.spent-B.budget)+' over its share.')});
+    if(over.length){msg+=' '+over.join(' ');if(cls==='good'||cls==='info')cls='warn'}
+    else if(items.length===1){var key=items[0].b==='needs'?'needs':'wants',B1=bk[key];msg+=' '+(key==='needs'?'Needs':'Wants')+': '+peso(B1.budget-B1.spent)+' left of '+peso(B1.budget)+'.'}
+    else msg+=' Needs: '+peso(bk.needs.budget-bk.needs.spent)+' left. Wants: '+peso(bk.wants.budget-bk.wants.spent)+' left.';
   }
   el.className='preview '+cls;el.textContent=msg;el.hidden=false;
 }
@@ -767,7 +811,7 @@ function renderFoot(){
 
 /* ---------- Tabs ---------- */
 var TABS=['today','savings','goals','shop','debts','summary','history','plan'],TAB_KEY='budget-planner-tab';
-function tabList(){return state?TABS:TABS.slice(0,7)}
+function tabList(){return (state?TABS:TABS.slice(0,7)).filter(function(k){return !(k==='summary'&&isBasic(state))})}
 function goTab(t,focus){
   if(tabList().indexOf(t)<0)t='today';
   $('main').setAttribute('data-active',t);
@@ -785,7 +829,9 @@ function goTab(t,focus){
 }
 function renderTabs(){
   $('tab-plan').hidden=!state;
-  if(!state&&$('main').getAttribute('data-active')==='plan')goTab('today');
+  $('tab-summary').hidden=isBasic(state);
+  var act=$('main').getAttribute('data-active');
+  if((!state&&act==='plan')||(isBasic(state)&&act==='summary'))goTab('today');
   var cur=$('main').getAttribute('data-active');
   TABS.forEach(function(k){var b=$('tab-'+k);b.setAttribute('aria-selected',k===cur?'true':'false');b.tabIndex=k===cur?0:-1});
   var I=savingsInfo(view());
@@ -814,26 +860,36 @@ function toast(msg,label,fn){
 }
 
 /* ---------- Actions ---------- */
+function getPMode(){var r=document.querySelector('input[name="pmode"]:checked');return r?r.value:'full'}
+function isBasic(st){return !!(st&&st.mode==='basic')}
+function syncModeUI(){
+  var basic=getPMode()==='basic';
+  ['p-rule-wrap','p-save-wrap','p-kind-wrap','p-start-wrap'].forEach(function(id){$(id).hidden=basic});
+  $('p-needs').hidden=basic||!$('p-rule').checked;
+  $('p-days-wrap').hidden=basic?false:$('p-kind').value!=='custom';
+  $('p-allow-lbl').textContent=basic?'How much money do you have today? (₱)':'My budget (₱)';
+  $('p-allow').placeholder=basic?'e.g. 500':'e.g. 1500';
+  $('p-days-lbl').textContent=basic?'How many days should it last? (optional, 1 to 90)':'Number of days (1 to 90)';
+  $('p-mode-note').textContent=basic?'Simple: 80% of your money to spend over your days, 20% kept for savings.':'Full: 50/30/20 rule, needs and wants, weekly or monthly budgets and more.';
+  var pv=$('p-basic-preview');
+  if(!basic){pv.hidden=true;return}
+  var a=parseCents($('p-allow').value),d=parseInt($('p-days').value,10),blank=$('p-days').value.trim()==='';
+  if(a&&blank){var sv1=Math.round(a*0.2);pv.textContent='Spend '+peso(a-sv1)+' with no day limit. Keep '+peso(sv1)+' for savings. Add days to see a daily amount.';pv.hidden=false;return}
+  if(!a||!(d>=1&&d<=90)){pv.hidden=true;return}
+  var sv=Math.round(a*0.2);
+  pv.textContent='Spend '+peso(a-sv)+' over '+d+(d===1?' day':' days')+' (about '+pesoFloor((a-sv)/d)+' a day). Keep '+peso(sv)+' for savings.';
+  pv.hidden=false;
+}
 function syncRuleUI(){
   var on=$('p-rule').checked,sv=$('p-save');
-  $('p-needs').hidden=!on;
+  $('p-needs').hidden=!on||getPMode()==='basic';
   sv.readOnly=on;
   if(on){var a=parseCents($('p-allow').value);sv.value=a?centsToInput(Math.round(a*0.2)):''}
   $('p-save-note').textContent=on?'Set to 20% of your budget.':'This money is taken out first, so it never counts as spendable.';
 }
-function setBucketDefault(){
-  var cat=(document.querySelector('input[name="cat"]:checked')||{}).value||'other';
-  var d=state&&state.rule&&state.rule.needs.indexOf(cat)>=0?'needs':'wants';
-  $('b-'+d).checked=true;
-}
 function buildNeeds(){
   $('p-needs-list').innerHTML=CATS.map(function(c){
     return '<label class="check inline"><input type="checkbox" name="need" value="'+c[0]+'"> '+esc(c[1])+'</label>';
-  }).join('');
-}
-function buildCats(){
-  $('chips').innerHTML=CATS.map(function(c,i){
-    return '<input class="sr" type="radio" name="cat" id="c-'+c[0]+'" value="'+c[0]+'"'+(i===0?' checked':'')+'><label for="c-'+c[0]+'">'+esc(c[1])+'</label>';
   }).join('');
 }
 function fillPlanForm(){
@@ -841,63 +897,78 @@ function fillPlanForm(){
   $('p-allow').value=s?centsToInput(s.allowance):'';
   $('p-save').value=s&&s.setAside?centsToInput(s.setAside):'';
   $('p-kind').value=s?s.period.kind:'week';
-  $('p-days').value=s&&s.period.days?s.period.days:7;
+  $('p-days').value=s?(s.period.open?'':(diffDays(s.period.start,periodEnd(s.period))+1)):7;
+  var pm=document.getElementById(s&&s.mode!=='basic'?'pm-full':'pm-basic');if(pm)pm.checked=true;
   $('p-start').value=s?s.period.start:today;
   $('p-rule').checked=s?!!(s.rule&&s.rule.on):true;
   var needs=s&&s.rule&&s.rule.needs?s.rule.needs:DEFAULT_NEEDS;
   Array.prototype.forEach.call(document.querySelectorAll('input[name="need"]'),function(b){b.checked=needs.indexOf(b.value)>=0});
   syncRuleUI();
-  $('p-days-wrap').hidden=$('p-kind').value!=='custom';
+  syncModeUI();
   $('plan-err').hidden=true;
 }
 function onAdd(ev){
   ev.preventDefault();
   if(!state)return;
-  var err=$('amt-err'),c=parseCents($('amt').value);
-  if(!c){
-    err.textContent='Enter an amount above zero, like 50 or 49.75.';err.hidden=false;
-    $('amt').setAttribute('aria-invalid','true');$('amt').focus();return;
-  }
-  err.hidden=true;$('amt').removeAttribute('aria-invalid');
-  var cat=(document.querySelector('input[name="cat"]:checked')||{}).value||'other';
+  var err=$('amt-err'),rows=rowEls(),list=[],ruleOn=!!(state.rule&&state.rule.on),bad=null;
   var d=$('date').value||compute(state,today).eff;
-  var exp={id:uid(),d:d,c:c,cat:cat,note:$('note').value.trim().slice(0,60)};
-  if(state.rule&&state.rule.on){var bs=document.querySelector('input[name="bkt"]:checked');if(bs)exp.b=bs.value}
-  state.expenses.push(exp);
-  bucketTouched=false;
-  $('amt').value='';$('note').value='';$('date').value='';
+  rows.forEach(function(r){
+    var inp=r.querySelector('.r-amt'),raw=inp.value.trim();
+    inp.removeAttribute('aria-invalid');
+    if(raw==='')return;
+    var c=parseCents(raw);
+    if(!c){if(!bad)bad=inp;inp.setAttribute('aria-invalid','true');return}
+    var exp={id:uid(),d:d,c:c,cat:r.querySelector('.r-cat').value,note:r.querySelector('.r-note').value.trim().slice(0,60)};
+    if(ruleOn)exp.b=r.querySelector('.r-bkt').value;
+    list.push(exp);
+  });
+  if(bad){err.textContent='Enter amounts above zero, like 50 or 49.75. Check the item marked in red.';err.hidden=false;bad.focus();return}
+  if(!list.length){err.textContent='Enter an amount above zero, like 50 or 49.75.';err.hidden=false;rows[0].querySelector('.r-amt').focus();return}
+  err.hidden=true;
+  list.forEach(function(e){state.expenses.push(e)});
+  var total=list.reduce(function(s,e){return s+e.c},0);
+  resetRows();$('date').value='';
   commit();
-  toast('Added '+peso(c)+' for '+(CATNAME[cat]||'Other'));
-  $('amt').focus();
+  toast(list.length===1?'Added '+peso(total)+' for '+(CATNAME[list[0].cat]||'Other'):'Added '+list.length+' expenses · '+peso(total));
+  rowEls()[0].querySelector('.r-amt').focus();
 }
 function onPlan(ev){
   ev.preventDefault();
   var a=parseCents($('p-allow').value),s=parseCents($('p-save').value),kind=$('p-kind').value,days=parseInt($('p-days').value,10),start=$('p-start').value,msg='';
   var rule=$('p-rule').checked,needs=Array.prototype.map.call(document.querySelectorAll('input[name="need"]:checked'),function(b){return b.value});
-  if(rule&&a)s=Math.round(a*0.2);
-  if(!a)msg='Enter your budget as a number above zero, like 1500.';
+  var basic=getPMode()==='basic',openP=basic&&$('p-days').value.trim()==='';
+  if(basic){
+    rule=false;kind='custom';start=state?state.period.start:today;
+    if(!needs.length)needs=DEFAULT_NEEDS.slice();
+    if(a)s=Math.round(a*0.2);
+  }
+  else if(rule&&a)s=Math.round(a*0.2);
+  if(!a)msg=basic?'Enter how much money you have, like 500.':'Enter your budget as a number above zero, like 1500.';
   else if(s===null)msg='Enter the savings amount as a number, or leave it empty.';
   else if(s>=a)msg='The savings amount has to be less than your budget.';
-  else if(kind==='custom'&&!(days>=1&&days<=90))msg='Enter a number of days from 1 to 90.';
+  else if(basic?(!openP&&!(days>=1&&days<=90)):(kind==='custom'&&!(days>=1&&days<=90)))msg='Enter a number of days from 1 to 90, or leave it empty.';
   else if(!/^\d{4}-\d{2}-\d{2}$/.test(start))msg='Pick the date this period starts.';
   var el=$('plan-err');
   if(msg){el.textContent=msg;el.hidden=false;return}
   el.hidden=true;
-  var period={start:start,kind:kind,days:kind==='custom'?days:7},first=!state;
+  var period={start:start,kind:kind,days:kind==='custom'?days:7},first=!state,mode=basic?'basic':'full';
+  if(openP)period={start:start,kind:'custom',days:90,open:true};
   var ruleObj={on:rule,needs:needs};
   if(first){
-    state={v:1,updatedAt:0,period:period,allowance:a,setAside:s,savedTotal:0,ess:1,saved:[],goals:[],shop:[],debts:[],past:[],rule:ruleObj,expenses:[]};
+    state={v:1,updatedAt:0,mode:mode,period:period,allowance:a,setAside:s,savedTotal:0,ess:1,saved:[],goals:[],shop:[],debts:[],past:[],rule:ruleObj,expenses:[]};
     if(kept){state.savedTotal=kept.savedTotal||0;state.saved=kept.saved||[];if(kept.places)state.places=kept.places;state.goals=kept.goals||[];state.shop=kept.shop||[];state.debts=kept.debts||[];kept=null}
   }
-  else{state.allowance=a;state.setAside=s;state.period=period;state.rule=ruleObj}
+  else{state.allowance=a;state.setAside=s;state.period=period;state.rule=ruleObj;state.mode=mode}
   commit();fillPlanForm();
-  toast(first?'Your plan is ready':'Plan saved');
+  toast(first?'Your plan is ready':(basic?'Saved. Basic mode: 80/20':'Plan saved'));
 }
 function startNext(){
   if(!state)return;
   var a=parseCents($('nx-allow').value),sv=$('nx-save')?parseCents($('nx-save').value):0,err=$('nx-err'),ruleOn=!!(state.rule&&state.rule.on),msg='';
-  if(ruleOn&&a)sv=Math.round(a*0.2);
+  var basicN=isBasic(state),nd=basicN?parseInt($('nx-days').value,10):0,openN=basicN&&$('nx-days').value.trim()==='';
+  if((ruleOn||basicN)&&a)sv=Math.round(a*0.2);
   if(!a)msg='Enter the budget as a number above zero, like 300.';
+  else if(basicN&&!openN&&!(nd>=1&&nd<=90))msg='Enter a number of days from 1 to 90, or leave it empty.';
   else if(sv===null)msg='Enter the savings amount as a number, or leave it empty.';
   else if(sv>=a)msg='The savings amount has to be less than the budget.';
   if(msg){err.textContent=msg;err.hidden=false;$('nx-allow').focus();return}
@@ -912,7 +983,8 @@ function startNext(){
     if(e>=today)break;
     start=addDays(e,1);
   }
-  state.period={start:start,kind:state.period.kind,days:state.period.days};
+  if(basicN)state.period=openN?{start:today,kind:'custom',days:90,open:true}:{start:today,kind:'custom',days:nd};
+  else state.period={start:start,kind:state.period.kind,days:state.period.days};
   state.allowance=a;state.setAside=sv;
   state.expenses=[];
   state.extras=[];
@@ -999,6 +1071,7 @@ function onUnlock(ev){
 function getMode(){var r=document.querySelector('input[name="xmode"]:checked');return r?r.value:'spend'}
 function modeLabel(x){
   if(x.mode==='save')return 'Saved';
+  if(x.mode==='split'&&isBasic(state))return 'Split 80/20';
   if(x.mode==='split'&&state&&state.rule&&state.rule.on)return 'Split 50/30/20';
   return 'Spendable';
 }
@@ -1102,10 +1175,10 @@ function renderShop(){
     else{
       var b=compute(st,today,{d:c.eff,c:total,cat:'food',b:'needs'});
       if(b.remaining<0){msg='Does not fit. This list is '+peso(-b.remaining)+' more than you have left for this period ('+peso(Math.max(0,c.remaining))+').';cls='bad'}
-      else if(c.phase==='active'&&b.safe<0){
+      else if(c.phase==='active'&&!c.open&&b.safe<0){
         msg='Fits the period, but it is '+peso(-b.safe)+' over today’s share.'+(b.tomorrow!==null?' Tomorrow’s share would drop to '+pesoFloor(b.tomorrow)+'.':'');cls='warn';
       }else{
-        msg='Fits your budget. You would have '+peso(b.remaining)+' left for the period'+(c.phase==='active'?' and '+pesoFloor(b.safe)+' safe to spend today':'')+'.';cls=b.status==='tight'?'warn':'good';
+        msg='Fits your budget. You would have '+peso(b.remaining)+' left for the period'+(c.phase==='active'&&!c.open?' and '+pesoFloor(b.safe)+' safe to spend today':'')+'.';cls=b.status==='tight'?'warn':'good';
       }
     }
     fit='<dl class="sh-stat"><div><dt>List total</dt><dd>'+peso(total)+'</dd></div><div><dt>Left this period</dt><dd>'+peso(Math.max(0,c.remaining))+'</dd></div>'+
@@ -1357,9 +1430,11 @@ function renderExtra(){
   var n=$('x-note');
   n.textContent=!state?'Set up your budget first.':(c.phase==='upcoming'?'You can add extra money once the period starts.':(c.phase==='ended'?'This period is finished. Start the next one to add extra money.':''));
   n.hidden=!n.textContent;
-  $('xm-split').hidden=!ruleOn;$('xl-split').hidden=!ruleOn;
-  if(!ruleOn&&getMode()==='split')$('xm-spend').checked=true;
-  if(ruleOn&&!xmodeTouched)$('xm-split').checked=true;
+  var basicX=isBasic(state),splitOn=ruleOn||basicX;
+  $('xl-split').textContent=basicX?'Split 80/20':'Split 50/30/20';
+  $('xm-split').hidden=!splitOn;$('xl-split').hidden=!splitOn;
+  if(!splitOn&&getMode()==='split')$('xm-spend').checked=true;
+  if(splitOn&&!xmodeTouched)$('xm-split').checked=true;
   var d=$('x-date');
   d.min=st.period.start;d.max=c.phase==='active'?c.eff:st.period.start;
   if(!d.value||d.value<d.min||d.value>d.max)d.value=c.eff;
@@ -1386,6 +1461,7 @@ function renderExtraPreview(){
     var b=compute(hyp,today),sv=Math.round(c*0.2);
     msg=(mode==='split'?peso(c-sv)+' becomes spendable and '+peso(sv)+' goes to savings. ':'')+'Safe to spend today goes from '+pesoFloor(a.safe)+' to '+pesoFloor(b.safe)+'.';
   }
+  if(a.open){var sv0=Math.round(c*0.2);msg=mode==='save'?'All '+peso(c)+' goes to savings.':(mode==='split'?peso(c-sv0)+' becomes spendable and '+peso(sv0)+' goes to savings.':peso(c)+' becomes spendable.')}
   el.className='preview good';el.textContent=msg;el.hidden=false;
 }
 function onExtra(ev){
@@ -1398,7 +1474,8 @@ function onExtra(ev){
   state.extras=(state.extras||[]).concat([x]);
   $('x-amt').value='';$('x-from').value='';
   commit();
-  toast('Added '+peso(c)+'. Safe to spend today: '+pesoFloor(compute(state,today).safe));
+  var cx=compute(state,today);
+  toast(cx.open?'Added '+peso(c):'Added '+peso(c)+'. Safe to spend today: '+pesoFloor(cx.safe));
 }
 function onRemoveExtra(id){
   var list=state.extras||[],i=-1;
@@ -1458,7 +1535,9 @@ document.addEventListener('click',function(ev){
   else if(t.hasAttribute('data-dels'))onRemoveSaved(t.getAttribute('data-dels'));
   else if(t.id==='sv-fill'&&state){var I=savingsInfo(state);$('sv-amt').value=I.toConfirm>0?centsToInput(I.toConfirm):'';$('sv-amt').focus()}
   else if(t.hasAttribute('data-delx'))onRemoveExtra(t.getAttribute('data-delx'));
-  else if(t.hasAttribute('data-amt')){$('amt').value=t.getAttribute('data-amt');renderPreview();$('amt').focus()}
+  else if(t.id==='add-row')addRow(true);
+  else if(t.hasAttribute('data-rowdel')){var rr=t.closest('.exp-row');if(rr&&rowEls().length>1){rr.remove();numberRows();renderPreview()}}
+  else if(t.hasAttribute('data-amt')){var tg=(lastAmt&&document.body.contains(lastAmt))?lastAmt:$('exp-rows').querySelector('.r-amt');tg.value=t.getAttribute('data-amt');renderPreview();tg.focus()}
   else if(t.id==='toast-act'){var f=toastFn;$('toast').hidden=true;toastFn=null;if(f)f()}
 });
 $('add-form').addEventListener('submit',onAdd);
@@ -1501,18 +1580,25 @@ document.addEventListener('visibilitychange',function(){
 $('x-amt').addEventListener('input',function(){$('x-err').hidden=true;renderExtraPreview()});
 $('x-modes').addEventListener('change',function(){xmodeTouched=true;renderExtraPreview()});
 $('x-date').addEventListener('input',renderExtraPreview);
-$('amt').addEventListener('input',function(){$('amt-err').hidden=true;renderPreview()});
+$('exp-rows').addEventListener('input',function(ev){if(ev.target.classList.contains('r-amt')){$('amt-err').hidden=true;ev.target.removeAttribute('aria-invalid')}renderPreview()});
+$('exp-rows').addEventListener('focusin',function(ev){if(ev.target.classList.contains('r-amt'))lastAmt=ev.target});
+$('exp-rows').addEventListener('change',function(ev){
+  var t=ev.target,row=t.closest('.exp-row');if(!row)return;
+  if(t.classList.contains('r-cat')){row.dataset.t='';if(state&&state.rule&&state.rule.on)setRowBucket(row)}
+  else if(t.classList.contains('r-bkt'))row.dataset.t='1';
+  renderPreview();
+});
 $('date').addEventListener('input',renderPreview);
-$('p-kind').addEventListener('change',function(){$('p-days-wrap').hidden=$('p-kind').value!=='custom'});
+$('p-kind').addEventListener('change',syncModeUI);
+$('p-mode').addEventListener('change',function(){syncRuleUI();syncModeUI()});
+$('p-days').addEventListener('input',syncModeUI);
 $('p-rule').addEventListener('change',syncRuleUI);
-$('p-allow').addEventListener('input',function(){if($('p-rule').checked)syncRuleUI()});
-$('chips').addEventListener('change',function(){bucketTouched=false;if(state&&state.rule&&state.rule.on)setBucketDefault();renderPreview()});
-$('bucket-chips').addEventListener('change',function(){bucketTouched=true;renderPreview()});
+$('p-allow').addEventListener('input',function(){if($('p-rule').checked)syncRuleUI();syncModeUI()});
 setInterval(function(){if(!state)return;var t=iso(new Date());if(t!==today){today=t;$('date').value='';$('x-date').value='';$('sv-date').value='';render()}},60000);
 
 /* ---------- Start ---------- */
 try{var _t=localStorage.getItem(TAB_KEY);if(_t&&TABS.indexOf(_t)>=0&&_t!=='plan')$('main').setAttribute('data-active',_t)}catch(e){}
-buildCats();
+resetRows();
 buildNeeds();
 lockMeta=loadLockMeta();
 if(lockMeta&&canLock()){

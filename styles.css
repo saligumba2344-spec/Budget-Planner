@@ -240,6 +240,17 @@ input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visi
 .d-form-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,150px);gap:12px}
 @media (max-width:420px){.d-form-row{grid-template-columns:minmax(0,1fr)}}
 
+/* several expenses at once */
+.exp-row{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--bg)}
+.exp-row+.exp-row{margin-top:10px}
+.exp-row .money{background:var(--surface)}
+.exp-row select,.exp-row input.r-note{background:var(--surface)}
+.exp-top{display:flex;justify-content:space-between;align-items:center;min-height:36px}
+.exp-n{font-size:13px;font-weight:600;color:var(--muted)}
+.exp-opts{display:grid;grid-template-columns:minmax(0,1fr) 110px;gap:8px}
+#exp-rows:not(.rule-on) .r-bkt{display:none}
+#exp-rows:not(.rule-on) .exp-opts{grid-template-columns:minmax(0,1fr)}
+
 /* overview */
 .seg{display:flex;height:14px;border-radius:999px;overflow:hidden;background:var(--line);margin:4px 0 14px}
 .seg span{display:block;height:100%}
