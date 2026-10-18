@@ -62,15 +62,6 @@ button,input,select{font:inherit;color:inherit}
 .top h1{flex:1 1 auto}
 .range{order:3;flex:1 0 100%}
 @media (min-width:480px){.range{order:0;flex:0 1 auto}}
-.top{position:relative}
-.av-btn{width:44px;height:44px;flex:none;padding:0;border:2px solid var(--line);border-radius:50%;background:var(--surface);cursor:pointer;overflow:hidden;display:inline-flex}
-.av-btn img{display:block;width:100%;height:100%}
-.av-btn:hover{border-color:var(--accent)}
-.av-btn:focus-visible,.av-opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.av-menu{position:absolute;top:52px;left:0;z-index:15;display:flex;gap:10px;padding:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.18)}
-.av-opt{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 12px;border:2px solid transparent;border-radius:12px;background:transparent;cursor:pointer;font:600 13px var(--body);color:var(--fg)}
-.av-opt img{display:block;width:56px;height:56px;border-radius:50%}
-.av-opt[aria-checked="true"]{border-color:var(--accent);background:var(--accent-soft)}
 .theme-btn{width:44px;height:44px;flex:none;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
 .theme-btn:hover{border-color:var(--accent)}
 .theme-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}

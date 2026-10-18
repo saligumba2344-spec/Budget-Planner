@@ -26,12 +26,6 @@ var c=t==='dark'?'#0A131A':'#EBF0F4',m=document.querySelectorAll('meta[name="the
 
 <div class="wrap">
   <header class="top">
-    <button type="button" class="av-btn" id="av-btn" aria-haspopup="true" aria-expanded="false" aria-label="Choose your avatar" title="Choose your avatar"><img id="av-img" src="icons/avatar-girl.svg" alt="" width="44" height="44"></button>
-    <div class="av-menu" id="av-menu" role="radiogroup" aria-label="Avatar" hidden>
-      <button type="button" class="av-opt" role="radio" data-av="girl" aria-checked="true"><img src="icons/avatar-girl.svg" alt="" width="56" height="56"><span>Girl</span></button>
-      <button type="button" class="av-opt" role="radio" data-av="boy" aria-checked="false"><img src="icons/avatar-boy.svg" alt="" width="56" height="56"><span>Boy</span></button>
-    </div>
-    <script>try{var _a=localStorage.getItem('budget-planner-avatar');if(_a==='boy'||_a==='girl'){document.getElementById('av-img').src='icons/avatar-'+_a+'.svg';var _o=document.querySelectorAll('.av-opt');for(var _i=0;_i<_o.length;_i++)_o[_i].setAttribute('aria-checked',_o[_i].getAttribute('data-av')===_a?'true':'false')}}catch(e){}</script>
     <h1>Budget Planner</h1>
     <p class="range" id="range"></p>
     <button type="button" class="theme-btn" id="theme-btn" aria-label="Switch to dark mode" title="Switch to dark mode">
@@ -1611,26 +1605,6 @@ if(lockMeta&&canLock()){
   render();
   connect();
 }
-})();
-</script>
-<script>
-/* Avatar picker: girl or boy, remembered on this device. */
-(function(){
-  var KEY='budget-planner-avatar',btn=document.getElementById('av-btn'),menu=document.getElementById('av-menu'),img=document.getElementById('av-img'),opts=menu.querySelectorAll('.av-opt');
-  function get(){try{var a=localStorage.getItem(KEY);return a==='boy'?'boy':'girl'}catch(e){return 'girl'}}
-  function paint(){var a=get();img.src='icons/avatar-'+a+'.svg';for(var i=0;i<opts.length;i++)opts[i].setAttribute('aria-checked',opts[i].getAttribute('data-av')===a?'true':'false')}
-  function close(focus){menu.hidden=true;btn.setAttribute('aria-expanded','false');if(focus)btn.focus()}
-  btn.addEventListener('click',function(){
-    var open=menu.hidden;menu.hidden=!open;btn.setAttribute('aria-expanded',open?'true':'false');
-    if(open){var cur=menu.querySelector('[aria-checked="true"]');if(cur)cur.focus()}
-  });
-  for(var i=0;i<opts.length;i++)opts[i].addEventListener('click',function(){
-    try{localStorage.setItem(KEY,this.getAttribute('data-av'))}catch(e){}
-    paint();close(true);
-  });
-  document.addEventListener('click',function(ev){if(!menu.hidden&&!menu.contains(ev.target)&&!btn.contains(ev.target))close(false)});
-  document.addEventListener('keydown',function(ev){if(ev.key==='Escape'&&!menu.hidden)close(true)});
-  paint();
 })();
 </script>
 <script>

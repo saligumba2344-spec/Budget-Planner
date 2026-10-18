@@ -1,8 +1,8 @@
 /* Budget Planner service worker: keeps the app working offline.
    Change CACHE (for example to v2) whenever you edit the files, so phones pick up the new version. */
-const CACHE = 'budget-planner-v17';
+const CACHE = 'budget-planner-v18';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'styles.css',
-  'icons/icon-192.png', 'icons/avatar-girl.svg', 'icons/avatar-boy.svg', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png'];
+  'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
